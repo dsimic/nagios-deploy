@@ -30,6 +30,14 @@ def setup_core():
     sudo(PKG_SETUP_CMD.format("unzip"))
     sudo(PKG_SETUP_CMD.format("apache2"))
     sudo(PKG_SETUP_CMD.format("apache2-doc apache2-utils"))
+    sudo(PKG_SETUP_CMD.format("postfix"))
+    sudo(PKG_SETUP_CMD.format("heirloom-mailx"))
+
+    sudo(PKG_SETUP_CMD.format("nginx"))
+
+    sudo(PKG_SETUP_CMD.format("php5-fpm"))
+    sudo(PKG_SETUP_CMD.format("spawn-fcgi"))
+    sudo(PKG_SETUP_CMD.format("fcgiwrap"))
 
 
 def setup_build_nagios():
@@ -113,6 +121,11 @@ def setup_nagios_cfgs():
         use_sudo=True
     )
     put(
+        "{0}/nagios/cgi.cfg".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/usr/local/nagios/etc/cgi.cfg",
+        use_sudo=True
+    )
+    put(
         "{0}/nagios/commands.cfg".format(env.CONFIG.NAGIOS_CFG_DIR),
         "/usr/local/nagios/etc/objects/commands.cfg",
         use_sudo=True
@@ -136,14 +149,27 @@ def setup_nginx():
     """
     put(
         "{0}/nginx/sites-available/nagios".format(env.CONFIG.NAGIOS_CFG_DIR),
-        "{0}/sites-availale/".format(env.CONFIG.REMOTE_NGINX_ROOT),
+        "{0}/sites-available/".format(env.CONFIG.REMOTE_NGINX_ROOT),
         use_sudo=True
+    )
+    put(
+        "./htpasswd.pl", "/usr/local/bin/",
+        use_sudo=True
+    )
+    sudo("chmod +x /usr/local/bin/htpasswd.pl")
+    sudo(
+        """
+        mkdir -p /etc/nagios
+        /usr/local/bin/htpasswd.pl nagiosadmin {0} >>
+            /usr/local/nagios/etc/htpasswd.users
+        """.format(env.CONFIG.NAGIOS_PWD)
     )
     sudo(
         """
         ln -s {0}/sites-available/nagios  {0}/sites-enabled/nagios
         """.format(env.CONFIG.REMOTE_NGINX_ROOT)
     )
+
     sudo("service nginx restart")
 
 
