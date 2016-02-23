@@ -1,4 +1,5 @@
 import os
+import imp
 
 from fabric.api import env, sudo, run, cd, put
 
@@ -98,6 +99,85 @@ def install_nagios_plugins():
     # sudo("service xinetd restart")
 
 
+def setenv(cfgpath="./config_example.py"):
+    env.CONFIG = imp.load_source('config', cfgpath)
+
+
+def setup_nagios_cfgs():
+    """
+    Puts our local nagios cfg files to server.
+    """
+    put(
+        "{0}/nagios/contacts.cfg".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/usr/local/nagios/etc/objects/contacts.cfg",
+        use_sudo=True
+    )
+    put(
+        "{0}/nagios/commands.cfg".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/usr/local/nagios/etc/objects/commands.cfg",
+        use_sudo=True
+    )
+    put(
+        "{0}/nagios/nagios.cfg".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/usr/local/nagios/etc/nagios.cfg",
+        use_sudo=True
+    )
+    sudo(
+        """
+        mkdir /usr/local/nagios/etc/servers
+        chown -R nagios:nagios /usr/local/nagios/etc
+        """
+    )
+
+
+def setup_nginx():
+    """
+    Configures nginx to serve nagios admin module.
+    """
+    put(
+        "{0}/nginx/sites-available/nagios".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "{0}/sites-availale/".format(env.CONFIG.REMOTE_NGINX_ROOT),
+        use_sudo=True
+    )
+    sudo(
+        """
+        ln -s {0}/sites-available/nagios  {0}/sites-enabled/nagios
+        """.format(env.CONFIG.REMOTE_NGINX_ROOT)
+    )
+    sudo("service nginx restart")
+
+
+def setup_apache():
+    """
+    Configures apache to serve nagios admin module.
+    """
+    put(
+        "{0}/apache2/ports.conf".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/etc/apache2/",
+        use_sudo=True
+    )
+    put(
+        "{0}/apache2/000-default.conf".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/etc/apache2/sites-available/",
+        use_sudo=True
+    )
+    sudo(
+        """
+        a2enmod rewrite
+        a2enmod cgi
+        htpasswd -b -c /usr/local/nagios/etc/htpasswd.users \
+            nagiosadmin {0}
+        """.format(env.CONFIG.NAGIOS_PWD)
+    )
+    sudo(
+        "ln -sf /etc/apache2/sites-available/nagios.conf" +
+        " /etc/apache2/sites-enabled/")
+    sudo("service nagios restart")
+    sudo("service apache2 restart")
+    # enable nagios to start on server boot
+    sudo("ln -s /etc/init.d/nagios /etc/rcS.d/S99nagios")
+
+
 def cleanup():
     """
     Delete tmp files from remote server.
@@ -105,10 +185,12 @@ def cleanup():
     run("cd; rm -rf nagios-*")
 
 
-def setup_box(
-):
+def setup_box(cfgpath="./config_example.py"):
     """
     Setups up the env for an OpenMRS box.
     """
+    setenv(cfgpath=cfgpath)
     setup_core()
     setup_build_nagios()
+    install_nagios_plugins()
+    setup_apache()

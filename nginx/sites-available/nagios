@@ -1,0 +1,47 @@
+ upstream nagios_php {
+     server unix:/var/run/nagios-php5-fpm.socket;
+ }
+
+ upstream nagios_fcgiwrap {
+     server unix:/var/run/nagios-fcgiwrap.socket;
+ }
+
+server {
+    server_name nagios.moringasci.com;
+    access_log /var/log/nginx/nagios.moringasci.com-access.log;
+    error_log /var/log/nginx/nagios.moringasci.com-error.log;
+ 
+    auth_basic "Private";
+    auth_basic_user_file /etc/nagios/htpasswd.users;
+ 
+    root /usr/local/nagios/share;
+    index index.php index.html;
+ 
+    location / {
+        try_files $uri $uri/ index.php /nagios;
+    }
+ 
+    location /nagios {
+        alias /usr/local/nagios/share;
+    }
+ 
+    location ~ ^/nagios/(.*\.php)$ {
+        alias /usr/local/nagios/share/$1;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_pass nagios_php;
+    }
+ 
+    location ~ \.cgi$ {
+            root /usr/local/nagios/sbin/;
+            rewrite ^/nagios/cgi-bin/(.*)\.cgi /$1.cgi break;
+            fastcgi_param AUTH_USER $remote_user;
+            fastcgi_param REMOTE_USER $remote_user;
+            include /etc/nginx/fastcgi_params;
+            fastcgi_pass nagios_fcgiwrap;
+      }
+ 
+    location ~ \.php$ {
+            include /etc/nginx/fastcgi_params;
+            fastcgi_pass nagios_php;
+      }
+}
