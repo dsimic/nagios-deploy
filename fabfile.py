@@ -103,8 +103,13 @@ def install_nagios_plugins():
         sudo make install-daemon-config
         """
     )
-    # put("./xinetd/nrpe", "/etc/xinetd.d", use_sudo=True)
-    # sudo("service xinetd restart")
+
+
+def setup_nrpe():
+    put(
+        "{0}/xinetd.d/nrpe".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/etc/xinetd.d/", use_sudo=True)
+    sudo("service xinetd restart")
 
 
 def setenv(cfgpath="./config_example.py"):
@@ -160,17 +165,18 @@ def setup_nginx():
     sudo(
         """
         mkdir -p /etc/nagios
-        /usr/local/bin/htpasswd.pl nagiosadmin {0} >>
+        /usr/local/bin/htpasswd.pl nagiosadmin "{0}" > \
             /usr/local/nagios/etc/htpasswd.users
         """.format(env.CONFIG.NAGIOS_PWD)
     )
     sudo(
         """
-        ln -s {0}/sites-available/nagios  {0}/sites-enabled/nagios
+        ln -sf {0}/sites-available/nagios  {0}/sites-enabled/nagios
         """.format(env.CONFIG.REMOTE_NGINX_ROOT)
     )
 
     sudo("service nginx restart")
+    sudo("service nagios restart")
 
 
 def setup_apache():
@@ -215,8 +221,11 @@ def setup_box(cfgpath="./config_example.py"):
     """
     Setups up the env for an OpenMRS box.
     """
+    cleanup()
     setenv(cfgpath=cfgpath)
     setup_core()
     setup_build_nagios()
     install_nagios_plugins()
-    setup_apache()
+    setup_nginx()
+    setup_nrpe()
+    cleanup()

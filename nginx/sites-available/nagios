@@ -1,9 +1,9 @@
  upstream nagios_php {
-     server unix:/var/run/nagios-php5-fpm.socket;
+     server unix:/var/run/php5-fpm.sock;
  }
 
  upstream nagios_fcgiwrap {
-     server unix:/var/run/nagios-fcgiwrap.socket;
+     server unix:/var/run/fcgiwrap.socket;
  }
 
 server {
