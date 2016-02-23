@@ -1,5 +1,6 @@
 import os
 import imp
+import glob
 
 from fabric.api import env, sudo, run, cd, put
 
@@ -106,6 +107,9 @@ def install_nagios_plugins():
 
 
 def setup_nrpe():
+    """
+    Sets up xinetd / nrpe.
+    """
     put(
         "{0}/xinetd.d/nrpe".format(env.CONFIG.NAGIOS_CFG_DIR),
         "/etc/xinetd.d/", use_sudo=True)
@@ -113,6 +117,8 @@ def setup_nrpe():
 
 
 def setenv(cfgpath="./config_example.py"):
+    """
+    Sets some key env variables / modules.  """
     env.CONFIG = imp.load_source('config', cfgpath)
 
 
@@ -120,6 +126,7 @@ def setup_nagios_cfgs():
     """
     Puts our local nagios cfg files to server.
     """
+    sudo("service nagios stop")
     put(
         "{0}/nagios/contacts.cfg".format(env.CONFIG.NAGIOS_CFG_DIR),
         "/usr/local/nagios/etc/objects/contacts.cfg",
@@ -140,12 +147,21 @@ def setup_nagios_cfgs():
         "/usr/local/nagios/etc/nagios.cfg",
         use_sudo=True
     )
+    sudo("mkdir -p /usr/local/nagios/etc/servers")
+    for server in glob.glob(
+            env.CONFIG.NAGIOS_CFG_DIR + "/nagios/servers/*"):
+        put(
+            server,
+            "/usr/local/nagios/etc/servers/",
+            use_sudo=True
+        )
+
     sudo(
         """
-        mkdir /usr/local/nagios/etc/servers
         chown -R nagios:nagios /usr/local/nagios/etc
         """
     )
+    sudo("service nagios start")
 
 
 def setup_nginx():
