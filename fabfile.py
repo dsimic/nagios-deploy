@@ -16,6 +16,8 @@ env.NAGIOS_PLUGINS_URL = "http://nagios-plugins.org/download/" + \
     "nagios-plugins-2.1.1.tar.gz"
 env.NRPE_URL = "http://downloads.sourceforge.net/project/nagios/" +\
     "nrpe-2.x/nrpe-2.15/nrpe-2.15.tar.gz"
+env.WEBINJECT_URL = "http://downloads.sourceforge.net/webinject/" +\
+    "webinject-1.41.src.tar.gz"
 
 
 def setup_core():
@@ -68,6 +70,44 @@ def setup_build_nagios():
             /etc/apache2/sites-available/nagios.conf
         """
     )
+
+
+def install_webinject():
+    """
+    Install webinject
+    """
+    run("rm -rf webinject-*")
+    run("wget %s" % env.WEBINJECT_URL)
+    run("tar xvf webinject-*.tar.gz")
+    run(
+        """
+        tar xzvf webinject-*
+        """
+    )
+    sudo(
+        """
+        mkdir -p /usr/local/nagios/libexec/webinject
+        cd webinject
+        cp -rf ./* /usr/local/nagios/libexec/webinject/
+        chown -R nagios:nagios /usr/local/nagios/libexec/webinject
+        """
+    )
+    config_perl()
+    sudo("yes | cpan install Webinject")
+
+
+def config_perl():
+    sudo(
+        """
+        yes | perl -MCPAN -e 'my $c = "CPAN::HandleConfig"; \
+            $c->load(doit => 1, autoconfig => 1); \
+            $c->edit(prerequisites_policy => "follow"); \
+            $c->edit(build_requires_install_policy => "yes"); \
+            $c->commit'
+        """
+    )
+    sudo("yes | cpan install CPAN")
+
 
 
 def install_nagios_plugins():
@@ -126,7 +166,6 @@ def setup_nagios_cfgs():
     """
     Puts our local nagios cfg files to server.
     """
-    sudo("service nagios stop")
     put(
         "{0}/nagios/contacts.cfg".format(env.CONFIG.NAGIOS_CFG_DIR),
         "/usr/local/nagios/etc/objects/contacts.cfg",
@@ -161,7 +200,7 @@ def setup_nagios_cfgs():
         chown -R nagios:nagios /usr/local/nagios/etc
         """
     )
-    sudo("service nagios start")
+    sudo("service nagios restart")
 
 
 def setup_nginx():

@@ -1,0 +1,6 @@
+<testcasefile>MyApplication.xml</testcasefile>
+<useragent>WebInject Application Tester</useragent>
+<timeout>10</timeout>
+<globaltimeout>20</globaltimeout>
+<reporttype>nagios</reporttype>
+

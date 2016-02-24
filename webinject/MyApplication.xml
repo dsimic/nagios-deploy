@@ -1,0 +1,42 @@
+<testcases repeat="1">
+
+<case
+    id="1"
+    description1="Connecting to MyAppication"
+    method="get"
+    url="http://www.mydummyapplication.com/login.php"
+    parseresponse='mykey="|"'
+    verifypositive="Login"
+    errormessage="Unable to connect to the login page of MyApplication"
+/>
+
+<case
+    id="2"
+    description1="Authentication on MyApplication"
+    method="post"
+    url="http://www.mydummyapplication.com/Authentication"
+    postbody="user=foo&password=bar&mykey={PARSEDRESULT}"
+    verifynegative="User unknown"
+    errormessage="Unable to authenticate user foo in MyApplication"
+/>
+
+<case
+    id="3"
+    description1="Navigate through MyApplication while authenticated"
+    method="get"
+    url="http://www.mydummyapplication.com/ApplicationHelp"
+    verifypositive="Welcome to the MyApplication help"
+    errormessage="Unable to navigate through MyApplication even though correctly authenticated"
+/>
+
+<case
+    id="4"
+    description1="Test access to the database"
+    method="post"
+    url="http://www.mydummyapplication.com/DatabaseRequest.php"
+    postbody="object=fruits&color=red"
+    verifypositive="strawberry"
+    errormessage="Unable to do a sample request that accesses the MyApplication database"
+/>
+
+</testcases>
