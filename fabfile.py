@@ -96,7 +96,28 @@ def install_webinject():
     sudo("yes | cpan install Webinject")
 
 
+def config_webinject():
+    """
+    Put webinject task files.
+    """
+    sudo("mkdir -p /usr/local/nagios/etc/webinject")
+    put(
+        "{0}/webinject/*".format(env.CONFIG.NAGIOS_CFG_DIR),
+        "/usr/local/nagios/etc/webinject/",
+        use_sudo=True
+    )
+    sudo(
+        """
+        chown -R nagios:nagios /usr/local/nagios/etc
+        """
+    )
+    sudo("service nagios restart")
+
+
 def config_perl():
+    """
+    Configures perl with cpan
+    """
     sudo(
         """
         yes | perl -MCPAN -e 'my $c = "CPAN::HandleConfig"; \
@@ -107,7 +128,6 @@ def config_perl():
         """
     )
     sudo("yes | cpan install CPAN")
-
 
 
 def install_nagios_plugins():
